@@ -4,7 +4,6 @@ import numpy as np
 import torch
 import torch.optim as optim
 import torch.nn as nn
-import torch.nn.functional as F
 
 from .replay_memory import replay_dataset
 from .train_agent import save_model
@@ -15,32 +14,38 @@ if is_ipython:
     from IPython import display
 plt.ion()
 
-def plot(data,fig,figure_number = 1,xlabel='',ylabel='',title=''):
+
+def plot(data, fig, figure_number=1, xlabel='', ylabel='', title=''):
     """Plots the duration length for the episodes of a gym environment"""
-    fig.add_subplot(1,2,figure_number)
+    fig.add_subplot(1, 2, figure_number)
     plt.title(title)
     plt.xlabel(xlabel)
     # only plot the y label if ipython is True, else the plot looks to cramped
     if is_ipython:
         plt.ylabel(ylabel)
-    plt.plot(np.array(data),'orange')
-    plt.ylim((0,1))
+    plt.plot(np.array(data), 'orange')
+    plt.ylim((0, 1))
     if not is_ipython:
         plt.pause(0.000001)  # pause a bit so that plots are updated
 
 
-def train_classifier(neural_net,spiking,learning_rate,path_to_replay,device,batch_size=50,iterations=2*10**5):
-    """Trains a classifier (spiking or non spiking) on the replay dataset of a DQN agent (or other agent)
+def train_classifier(neural_net, spiking, learning_rate, path_to_replay, device, batch_size=50,
+                     iterations=2*10**5):
+    """
+    Trains a classifier (spiking or non spiking) on the replay dataset of a DQN agent (or other
+    agent)
 
     Args:
-        neural_net: the neural network of the classifier. Must be a PyTorch network or SQN.
-        spiking: Bool. Whether the network is a spiking network.
+        neural_net: the neural network of the classifier. Must be a PyTorch network or SQN
+        spiking: Bool. Whether the network is a spiking network
         learning_rate: learning rate of the optimizer
-        path_to_replay: path to the replay memory from which the classifier learns. Path must lead to a folder which
-                        contains the files "memory_inputs.npz" and "memory_outputs.npz".
-        device: torch device.
-        batch_size: batch size for Adam optimizer.
-        iterations: number of iterations to optimize."""
+        path_to_replay: path to the replay memory from which the classifier learns. Path must lead
+                        to a folder which contains the files "memory_inputs.npz" and
+                        "memory_outputs.npz"
+        device: torch device
+        batch_size: batch size for Adam optimizer
+        iterations: number of iterations to optimize
+    """
     # Save initial weights
     save_model(neural_net, 'initial')
     # train classifier on the q values
@@ -90,12 +95,13 @@ def train_classifier(neural_net,spiking,learning_rate,path_to_replay,device,batc
                 plt.close("all")
             fig = plt.figure(0)
             plt.tight_layout()
-            plot(mean_losses,fig, figure_number=1, title='Loss', xlabel='Iteration in hundreds', ylabel='Loss')
-            plot(mean_accuracies,fig,figure_number=2, title='Accuracy', xlabel='Iteration in hundreds', ylabel='Accuracy')
+            plot(mean_losses,fig, figure_number=1, title='Loss', xlabel='Iteration in hundreds',
+                 ylabel='Loss')
+            plot(mean_accuracies, fig, figure_number=2, title='Accuracy',
+                 xlabel='Iteration in hundreds', ylabel='Accuracy')
             plt.tight_layout()
             if is_ipython:
                 display.display(plt.gcf())
-
 
     # Save learned weights
     save_model(neural_net, 'trained')

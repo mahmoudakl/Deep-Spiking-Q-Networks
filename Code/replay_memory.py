@@ -1,14 +1,15 @@
 # this file implements the ReplayMemory class
 
-from collections import namedtuple
-import random
-import numpy as np
-import os
 import torch
+import random
+
+import numpy as np
+
+from collections import namedtuple
+
 
 # define a transition
-Transition = namedtuple('Transition',
-                                ('state', 'action', 'next_state', 'reward'))
+Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
 
 
 class ReplayMemory(object):
@@ -34,10 +35,13 @@ class ReplayMemory(object):
         return len(self.memory)
 
     def save(self,model):
-        """Saves the states of the environment in memory_inputs and the corresponding Q-values in memory_outputs
-            Args:
-                model: model used to compute the Q-values
-            """
+        """
+        Saves the states of the environment in memory_inputs and the corresponding Q-values in
+        memory_outputs
+
+        Args:
+            model: model used to compute the Q-values
+        """
         # array for input data
         states = torch.cat([row[0].unsqueeze(dim=0) for row in self.memory])
         memory_inputs = states.detach().numpy()
@@ -48,13 +52,16 @@ class ReplayMemory(object):
 
 
 class replay_dataset():
-    """dummy dataset consisting of the states and the corresponding actions with the highest Q-value"""
+    """
+    Dummy dataset consisting of the states and the corresponding actions with the highest Q-value
+    """
     def __init__(self,path_to_replay,device):
-        """Initializes the dataset
+        """
+        Initializes the dataset
         Args:
             device: device for creating torch tensors
-            path_to_replay: path to the replay memory that is loaded. Path must lead to a folder which contains the files
-                            "memory_inputs.npz" and "memory_outputs.npz"
+            path_to_replay: path to the replay memory that is loaded. Path must lead to a folder
+            which contains the files "memory_inputs.npz" and "memory_outputs.npz"
         """
         # Read DQN data
         obs = np.load(path_to_replay+"/memory_inputs.npz")

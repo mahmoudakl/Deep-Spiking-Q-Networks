@@ -1,41 +1,46 @@
 import gym
-import numpy as np
+import random
 import torch
 import warnings
 import statistics
-from itertools import count
 import matplotlib.pyplot as plt
-import random
 
+from itertools import count
 from .replay_memory import ReplayMemory
 from .utils import plot_durations,plot_mean
 
-def load_agent(environment,policy_net, device,epsilon=0,gym_seed=None,save_replay=False,replay_size=2*10**4,
-               max_steps=None,num_episodes=100,render =True, compare_against=None,
-               input_preprocessing=None, observation_history_length=None,frameskip=None,
-               no_op_range=None,no_op=None):
-    """load an agent on a gym environment
+
+def load_agent(environment, policy_net, device, epsilon=0, gym_seed=None, save_replay=False,
+               replay_size=2*10**4, max_steps=None, num_episodes=100, render =True,
+               compare_against=None, input_preprocessing=None, observation_history_length=None,
+               frameskip=None, no_op_range=None, no_op=None):
+    """
+    load an agent on a gym environment
 
     Args:
         environment: string: name of gym environment
-        policy_net: PyTorch neural network or SQN. The agent that determines the actions to take.
-                    Potentially other networks can be used, only requirement is that it implements the method forward.
+        policy_net: PyTorch neural network or SQN. The agent that determines the actions to take
+                    Potentially other networks can be used, only requirement is that it implements
+                    the method forward.
         device: torch device
         epsilon: random action probability
         gym_seed: seed for the environment
         save_replay: whether to save the observed states and their corresponding actions
         replay_size: size of the replay memory
-        max_steps: maximum number of steps in one episode. If None no maxmium is defined.
+        max_steps: maximum number of steps in one episode. If None no maximum is defined
         num_episodes: number of episodes to simulate the environment for
         render: whether to render the environment
-        compare_against: None or PyTorch neural network or SQN.
-                         If not None, the policy_net is compared against this agent and a similarity measure is computed
-        input_preprocessing: optional function depending on the observation history which preprocesses the input before
-                             it is passed to the agent(s)
-        observation_history_length: None or int. Whether to keep a history of observations and how long it is.
-        frameskip: used for Atari environments. Determines the frameskip.
-        no_op_range: tuple (min,max). used for Atari environments (see Mnih et al.).
-        no_op: "do nothing" action for the game (int)."""
+        compare_against: None or PyTorch neural network or SQN
+                         If not None, the policy_net is compared against this agent and a similarity
+                         measure is computed
+        input_preprocessing: optional function depending on the observation history which
+                             pre-processes the input before it is passed to the agent(s)
+        observation_history_length: None or int. Whether to keep a history of observations and how
+                                    long it is
+        frameskip: used for Atari environments, determines the frameskip
+        no_op_range: tuple (min,max), used for Atari environments (see Mnih et al.)
+        no_op: "do nothing" action for the game (int)
+        """
 
     # set up environment
     env = gym.make(environment)
@@ -55,9 +60,10 @@ def load_agent(environment,policy_net, device,epsilon=0,gym_seed=None,save_repla
         memory = ReplayMemory(replay_size)
         memory_saved = False
 
-    # if compare against is not None we compare each prediction of the agent with the compare against agent
-    # we count the number of "correct" classifications, where both agents predict the same and also count the number of mismatches
-    # we use this to calculate a similarity measure between the two agents (referred to as conversion accuracy in the thesis)
+    # if compare against is not None, we compare each prediction of the agent with the compare
+    # against agent. We count the number of "correct" classifications, where both agents predict the
+    # same and also count the number of mismatches. We use this to calculate a similarity measure
+    # between the two agents (referred to as conversion accuracy in the thesis)
     if compare_against is not None:
         mismatches = 0
         correct = 0
@@ -84,10 +90,11 @@ def load_agent(environment,policy_net, device,epsilon=0,gym_seed=None,save_repla
                 if len(observation_history) > observation_history_length:
                     observation_history.pop(-1)
 
-        # preprocess the input if preprocessing specified
+        # input pre-processing if specified
         if input_preprocessing is not None:
             observation = input_preprocessing(observation_history)
-        # else the observation needs to be cast to a float tensor for the computation of the neural network
+        # else the observation needs to be cast to a float tensor for the computation of the neural
+        # network
         else:
             observation = torch.tensor(observation, device=device).float()
         state = observation
@@ -121,10 +128,11 @@ def load_agent(environment,policy_net, device,epsilon=0,gym_seed=None,save_repla
                 if len(observation_history) > observation_history_length:
                     observation_history.pop(-1)
 
-            # preprocess the input if a preprocessing function is specified
+            # input pre-processing if specified
             if input_preprocessing is not None:
                 observation = input_preprocessing(observation_history)
-            # else the observation needs to be cast to a float tensor for the computation of the neural network
+            # else the observation needs to be cast to a float tensor for the computation of the
+            # neural network
             else:
                 observation = torch.tensor(observation, device=device).float()
 
@@ -154,21 +162,22 @@ def load_agent(environment,policy_net, device,epsilon=0,gym_seed=None,save_repla
                 plot_mean(episode_rewards)
                 # if compare_against is not None, report the current Similarity
                 if compare_against is not None:
-                    print('Similarity (Conversion Accuracy) after ' + str(correct + mismatches) + ' iterations: ' + str(
-                        correct * 100 / (mismatches + correct)) + '%')
+                    print('Similarity (Conversion Accuracy) after ' + str(correct + mismatches) +
+                          ' iterations: ' + str(correct*100/(mismatches + correct)) + '%')
                 break
 
     print('Complete')
     if save_replay and not memory_saved:
         memory.save(policy_net)
-        warnings.warn('save_replay was set to True, but not enough episodes were run to fill the replay.'
-                      ' You might want to rerun with a higher number of episodes such that the memory has the correct size')
+        warnings.warn('save_replay was set to True, but not enough episodes were run to fill the'
+                      'replay. You might want to re-run with a higher number of episodes such that'
+                      ' the memory has the correct size.')
     print('Mean: ', statistics.mean(episode_rewards))
     print('Std: ', statistics.stdev(episode_rewards))
     # if compare_against is not None, report the final Similarity
     if compare_against is not None:
-        print('Similarity (Conversion Accuracy) after ' + str(correct + mismatches) + ' iterations: ' + str(
-            correct * 100 / (mismatches + correct)) + '%')
+        print('Similarity (Conversion Accuracy) after ' + str(correct + mismatches) +
+              ' iterations: ' + str(correct*100/(mismatches + correct)) + '%')
     env.close()
     plt.ioff()
     plt.show()

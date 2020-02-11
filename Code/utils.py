@@ -4,7 +4,6 @@ import numpy as np
 import os
 from IPython.display import clear_output
 import matplotlib
-from matplotlib import pyplot as plt
 import collections
 # set up matplotlib for iPython (Jupyter Notebook)
 is_ipython = 'inline' in matplotlib.get_backend()
@@ -13,7 +12,8 @@ if is_ipython:
 plt.ion()
 
 
-def plot_durations(episode_durations, plot_mean=True,figure_number=1,title='Training...',xlabel='Episode',ylabel='Reward',default_ones=False,max_steps=0):
+def plot_durations(episode_durations, plot_mean=True, figure_number=1, title='Training...',
+                   xlabel='Episode', ylabel='Reward', default_ones=False, max_steps=0):
     """Plots the duration length for the episodes of a gym environment"""
     plt.figure(figure_number)
     plt.clf()
@@ -55,8 +55,8 @@ def save_model(model, directory):
     os.chdir(cwd)
 
 
-def save_hyperparameters(discount_factor, learning_rate, epsilon_start, epsilon_end, epsilon_decay, replay_memory_size,
-                         sample_size, target_update_frequency, others=''):
+def save_hyperparameters(discount_factor, learning_rate, epsilon_start, epsilon_end, epsilon_decay,
+                         replay_memory_size, sample_size, target_update_frequency, others=''):
     """saves the hyperparameters of the model"""
     with open('hyperparameters.txt', 'w') as file:
         file.write('Discount Factor: ' + str(discount_factor) + '\n')
