@@ -55,10 +55,11 @@ def save_model(model, directory):
     os.chdir(cwd)
 
 
-def save_hyperparameters(discount_factor, learning_rate, epsilon_start, epsilon_end, epsilon_decay,
-                         replay_memory_size, sample_size, target_update_frequency, others=''):
+def save_hyperparameters(results_dir, iteration, discount_factor, learning_rate, epsilon_start,
+                         epsilon_end, epsilon_decay, replay_memory_size, sample_size,
+                         target_update_frequency, others=''):
     """saves the hyperparameters of the model"""
-    with open('hyperparameters.txt', 'w') as file:
+    with open(results_dir + '/hyperparameters_{}.txt'.format(iteration), 'w') as file:
         file.write('Discount Factor: ' + str(discount_factor) + '\n')
         file.write('Learning Rate: ' + str(learning_rate) + '\n')
         file.write('Epsilon Start: ' + str(epsilon_start) + '\n')

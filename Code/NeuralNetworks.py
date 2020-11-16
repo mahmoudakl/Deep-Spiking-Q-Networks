@@ -7,7 +7,7 @@ class FullyConnected(nn.Module):
     A generic fully connected network with ReLu activations, biases and no activation function for
     the output
     """
-    def __init__(self,architecture):
+    def __init__(self, architecture):
         """
         Architecture needs to be a list that describes the architecture of the  network,
         e.g. [4,16,16,2] is a network with 4 inputs, 2 outputs and two hidden layers with 16 neurons

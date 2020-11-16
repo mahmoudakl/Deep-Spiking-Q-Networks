@@ -9,12 +9,12 @@ import matplotlib.pyplot as plt
 import torch.nn.functional as F
 
 from itertools import count
-from collections import namedtuple
+from collections import deque, namedtuple
 from .replay_memory import ReplayMemory
 from .utils import plot_durations, save_model, save_hyperparameters
 
 
-def select_action(policy_net, state, eps_start, eps_end, eps_decay, n_actions, device, steps_done):
+def select_action(policy_net, state, eps, n_actions, device, steps_done):
     """
     Selects the action with the highest Q-value with probability 1-eps_threshold and a random action
     otherwise
@@ -31,8 +31,7 @@ def select_action(policy_net, state, eps_start, eps_end, eps_decay, n_actions, d
     Returns: The selected action
     """
     sample = random.random()
-    eps_threshold = max(eps_end, eps_start * (eps_decay ** steps_done))
-    if sample > eps_threshold:
+    if sample > eps:
         with torch.no_grad():
             # t.max(1) will return largest column value of each row
             # second column on max result is index of where max element was
@@ -137,12 +136,12 @@ def optimize_model(memory, BATCH_SIZE, device, policy_net, Transition, n_actions
 
 
 def train_agent(environment, policy_net, target_net, batch_size, gamma, eps_start, eps_end,
-                eps_decay, target_update, optimizer, learning_rate, memory_size, device,
-                gym_target_average, gym_target_stay, num_episodes=1000, max_steps=None, render=True,
-                double_q_learning=True, gradient_clipping=True, initial_replay_size=0,
-                input_preprocessing=None, reward_preprocessing=None, gym_seed=None, torch_seed=None,
-                random_seed=None, update_frequency=1, no_op_range=None, no_op=None,
-                observation_history_length=None, target_update_mode='episodes', frameskip=None):
+                eps_decay, target_update, optimizer, learning_rate, memory_size, device, i_run,
+                result_dir, num_episodes=1000, max_steps=None, render=True, double_q_learning=True,
+                gradient_clipping=True, initial_replay_size=0, input_preprocessing=None,
+                reward_preprocessing=None, gym_seed=None, torch_seed=None, random_seed=None,
+                update_frequency=1, no_op_range=None, no_op=None, observation_history_length=None,
+                target_update_mode='episodes', frameskip=None):
     """
     Args:
         environment: the name of the gym environment as a string
@@ -159,9 +158,6 @@ def train_agent(environment, policy_net, target_net, batch_size, gamma, eps_star
         learning_rate: learning rate of the optimizer
         memory_size: size of the replay memory
         device: device for torch tensors
-        gym_target_average: 100 episode average goal for the environment
-        gym_target_stay: how long the agent needs to stay at the target_average to solve the
-                         environment
         num_episodes: number of training episodes
         max_steps: time limit for the environment, if None then no time limit
         render: if the environment should be rendered
@@ -227,26 +223,27 @@ def train_agent(environment, policy_net, target_net, batch_size, gamma, eps_star
     # some helper variables
     steps_done = 0
     episode_rewards = []
-    # average counter counts how long the agent is already above the gym target
-    avg_counter = 0
+
     # best average keeps track of the best average and best_average_after at what episode it was
     # reached
     best_average = -np.inf
     best_average_after = np.inf
-    # finished tells if the gym standard is reached and finished_after at what episode
-    finished = False
-    finished_after = np.inf
 
     # save initial model
-    save_model(policy_net, 'initial')
+    #save_model(policy_net, 'initial')
     # set up directory for the best 100 episode average model and save the initial network into it.
-    save_model(policy_net,'best')
-    save_hyperparameters(gamma, learning_rate, eps_start, eps_end, eps_decay, memory_size,
-                         batch_size, target_update, others='Gym seed: '+str(gym_seed) +
+    #save_model(policy_net,'best')
+    save_hyperparameters(result_dir, i_run, gamma, learning_rate, eps_start, eps_end, eps_decay,
+                         memory_size, batch_size, target_update, others='Gym seed: '+str(gym_seed) +
                                                            ' , Torch seed: ' + str(torch_seed) +
                                                            ' , Random seed: ' + str(random_seed))
 
-    for i_episode in range(num_episodes):
+    scores = []
+    smoothed_scores = []
+    scores_window = deque(maxlen=100)
+    eps = eps_start
+
+    for i_episode in range(1, num_episodes + 1):
         # Initialize the environment and state
         observation = env.reset()
         # Keep track of the reward in this episode
@@ -277,6 +274,7 @@ def train_agent(environment, policy_net, target_net, batch_size, gamma, eps_star
         # network
         else:
             observation = torch.tensor(observation, device=device).float()
+
         state = observation
 
         for t in count():
@@ -284,7 +282,7 @@ def train_agent(environment, policy_net, target_net, batch_size, gamma, eps_star
                 env.render()
 
             # Select and perform an action
-            action = select_action(policy_net, state, eps_start, eps_end, eps_decay, n_actions,
+            action = select_action(policy_net, state, eps, n_actions,
                                    device, steps_done)
             steps_done += 1
             observation, reward, done, info = env.step(action.item())
@@ -321,7 +319,7 @@ def train_agent(environment, policy_net, target_net, batch_size, gamma, eps_star
             # Store the transition in memory, but only if the maximum number of steps has not been
             # reached. If the last transition is stored in memory it can distort the results,
             # because it always appears to be a bad state (no further reward)
-            if t < max_steps-1:
+            if t < max_steps - 1:
                 memory.push(state, action, next_state, reward)
 
             # Move to the next state
@@ -344,44 +342,44 @@ def train_agent(environment, policy_net, target_net, batch_size, gamma, eps_star
                     target_net.load_state_dict(policy_net.state_dict())
 
             if done:
-                rewards_t = torch.tensor(episode_rewards, dtype=torch.float)
+                #rewards_t = torch.tensor(episode_rewards, dtype=torch.float)
+                scores_window.append(total_reward)
+                scores.append(total_reward)
+                smoothed_scores.append(np.mean(scores_window))
 
-                episode_rewards.append(total_reward)
-                plot_durations(episode_rewards)
-                if len(rewards_t) >= 100:
+                #episode_rewards.append(total_reward)
+                #plot_durations(episode_rewards)
+                #if len(rewards_t) >= 100:
                     # plot the episode durations
-                    average = rewards_t[rewards_t.shape[0] - 100:rewards_t.shape[0]].mean()
-                    if average > best_average:
-                        best_average = average
-                        best_average_after = i_episode
-                        # save the best model (with the best 100 episode average) in folder best
-                        os.remove('best/model.pt')
-                        os.rmdir('best')
-                        save_model(policy_net, 'best')
-                    if gym_target_average is not None:
-                        if average >= gym_target_average:
-                            avg_counter += 1
-                        else:
-                            avg_counter = 0
-                    # save neural network if open ai gym standard is reached in folder 'trained':
-                    if gym_target_average is not None:
-                        if (avg_counter >= gym_target_stay) and not finished:
-                            save_model(policy_net, 'trained')
-                            finished = True
-                            finished_after = i_episode
-                #stop the episode by break
+                    #average = rewards_t[rewards_t.shape[0] - 100:rewards_t.shape[0]].mean()
+                average = np.mean(scores_window)
+                if average > best_average:
+                    best_average = average
+                    best_average_after = i_episode
+                    # save the best model (with the best 100 episode average) in folder best
+                    #os.remove('best/model.pt')
+                    #os.rmdir('best')
+                    #save_model(policy_net, 'best')
+                    torch.save(policy_net.state_dict(),
+                               result_dir + '/checkpoint_{}.pth'.format(i_run))
+
+                # stop the episode
                 break
+
+            # Decay Epsilon
+            eps = max(eps_end, eps_decay * eps)
+
         # Update the target network, copying all weights and biases in DQN
         if target_update_mode == 'episodes':
             if i_episode % target_update == 0:
                 target_net.load_state_dict(policy_net.state_dict())
 
-    # print some information about the training process
-    if finished:
-        print('OpenAIGymStandard reached at episode ', finished_after,
-              '. Model saved in folder trained.')
-    else:
-        print('Failed to reach OpenAIGymStandard')
+        print("Episode {}\tAverage Score: {:.2f}\t Epsilon: {:.2f}".format(
+            i_episode, np.mean(scores_window), eps), end='\r')
+
+        if i_episode % 100 == 0:
+            print("\rEpisode {}\tAverage Score: {:.2f}".format(i_episode, np.mean(scores_window)))
+
     print('Best 100 episode average: ', best_average, ' reached at episode ', best_average_after,
           '. Model saved in folder best.')
     print('Complete')
@@ -389,3 +387,5 @@ def train_agent(environment, policy_net, target_net, batch_size, gamma, eps_star
     plt.savefig('Training.png')
     plt.ioff()
     plt.show()
+
+    return scores, smoothed_scores
