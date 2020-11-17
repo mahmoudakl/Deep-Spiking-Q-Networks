@@ -198,6 +198,9 @@ def train_agent(environment, policy_net, target_net, batch_size, gamma, eps_star
         # script. Else it could be left out.
         env.reset()
 
+    random.seed(random_seed)
+    torch.manual_seed(torch_seed)
+
     # set maximum episode steps
     if max_steps is not None:
         env._max_episode_steps = max_steps
