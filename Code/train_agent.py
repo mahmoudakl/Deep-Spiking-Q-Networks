@@ -285,8 +285,7 @@ def train_agent(environment, policy_net, target_net, batch_size, gamma, eps_star
                 env.render()
 
             # Select and perform an action
-            action = select_action(policy_net, state, eps, n_actions,
-                                   device, steps_done)
+            action = select_action(policy_net, state, eps, n_actions, device, steps_done)
             steps_done += 1
             observation, reward, done, info = env.step(action.item())
 
