@@ -258,17 +258,17 @@ def train_agent(environment, policy_net, target_net, batch_size, gamma, eps_star
             observation_history.insert(0,observation)
 
         # compute random number of do nothing operations, if specified:
-        if no_op_range is not None:
-            # random number or no ops between no_op[0] and no_op[1]
-            rand = random.randint(no_op_range[0], no_op_range[1])
-            for i in range(0, rand):
-                observation, reward, _, _ = env.step(no_op)
-                if reward_preprocessing is not None:
-                    reward = reward_preprocessing(reward,observation)
-                total_reward += reward
-                observation_history.insert(0, observation)
-                if len(observation_history) > observation_history_length:
-                    observation_history.pop(-1)
+        #if no_op_range is not None:
+        #    # random number or no ops between no_op[0] and no_op[1]
+        #    rand = random.randint(no_op_range[0], no_op_range[1])
+        #    for i in range(0, rand):
+        #        observation, reward, _, _ = env.step(no_op)
+        #        if reward_preprocessing is not None:
+        #            reward = reward_preprocessing(reward,observation)
+        #        total_reward += reward
+        #        observation_history.insert(0, observation)
+        #        if len(observation_history) > observation_history_length:
+        #            observation_history.pop(-1)
 
         # preprocess the input if pre-processing specified
         if input_preprocessing is not None:

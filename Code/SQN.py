@@ -61,10 +61,10 @@ class SQN(nn.Module):
             device: device for the torch tensors
             alpha: synapse decay
             beta: membrane decay
-            weight_scale: determines the standard deviaiton of the random weights
+            weight_scale: determines the standard deviation of the random weights
             encoding: 'constant','equidistant' or 'poisson' for the three possible input methods
             decoding: 'potential' or 'spikes' for the two different output methods, also
-                      'first_spike' is possible which returns once the fiirst output neuron spikes
+                      'first_spike' is possible which returns once the first output neuron spikes
             threshold: 'threshold' when a spike occurs
             simulation_time: number of time steps to be simulated
             reset: either 'subtraction' or 'zero'
@@ -80,19 +80,20 @@ class SQN(nn.Module):
         self.threshold = threshold
         self.simulation_time = simulation_time
         self.device = device
-        self.input_size = network_shape[0]
+        #self.input_size = network_shape[0]
         self.reset = reset
         self.add_bias_as_observation = add_bias_as_observation
         self.two_input_neurons = two_input_neurons
 
-        if self.add_bias_as_observation:
+
+        #if self.add_bias_as_observation:
             # add one more neuron to the architecture at the input, because the bias acts as an
             # additional input
-            network_shape[0] += 1
+        #    network_shape[0] += 1
 
         self.weights = []
         self.bias = []
-        for i in range(0,len(network_shape)-1):
+        for i in range(0, len(network_shape) - 1):
             self.weights.append(torch.empty((network_shape[i], network_shape[i+1]), device=device,
                                             dtype=torch.float, requires_grad=True))
             torch.nn.init.normal_(self.weights[i], mean=0.0,
@@ -102,9 +103,9 @@ class SQN(nn.Module):
 
         self.spike_fn = SuperSpike.apply
 
-        if self.two_input_neurons:
-            self.weights[0] = torch.cat([self.weights[0],torch.neg(self.weights[0])])
-            self.input_size *= 2
+        #if self.two_input_neurons:
+        #    self.weights[0] = torch.cat([self.weights[0],torch.neg(self.weights[0])])
+        #    self.input_size *= 2
 
     def forward(self, input_data):
         """
@@ -123,8 +124,11 @@ class SQN(nn.Module):
                                     torch.neg(input_data*(input_data < 0))])
         # reshape input such that it is in the form (batch_size, input_dimension) and not
         # (input_dimension,) or (input_dimension)
-        if input_data.shape == (self.input_size,) or input_data.dim() == 1:
-            input_data = input_data.reshape(1, self.input_size)
+        #if input_data.shape == (self.input_size,) or input_data.dim() == 1:
+        #    input_data = input_data.reshape(1, self.input_size)
+        if input_data.dim() == 1:
+            input_data = input_data.unsqueeze(0)
+
         batch_size = input_data.shape[0]
 
         if self.add_bias_as_observation:
